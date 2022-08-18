@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import os.path
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -140,21 +140,14 @@ def main():
             token.write(creds.to_json())
 
     try:
-        try:
-            filename = input('Enter File Name: ') + '.xlsx'
-            writer = pd.ExcelWriter(filename, engine='xlsxwriter')
-        except:
-            print('Your Enter File Name Is Already Open\nSo Please Close Your Excel Sheet And Run again Or Try '
-                  'Different File '
-                  'Name')
-            return None
+        filename = input('Enter File Name: ') + '.xlsx'
         service = build('gmail', 'v1', credentials=creds, static_discovery=False)
         user = service.users().getProfile(userId='me').execute()
         userId = user['emailAddress']
         main_df = pd.DataFrame()
         email_no = 0
         check_totol = False
-        total_email_want = int(input("Enter How Many Email You Want: "))
+        total_email_want = int(input("Enter How Many Bounced Email You Want: "))
         results = service.users().messages().list(userId='me', labelIds='INBOX').execute()
         while True:
             for i in results['messages']:
@@ -170,6 +163,10 @@ def main():
                         run_data = True
                         subject = one['value']
                         failed_email = failure_notice(payload)
+                        try:
+                            description = text(payload)
+                        except:
+                            description = 'None'
                         email_no += 1
                         break
                     if one['name'] == 'From' and 'Mail Delivery' in one['value'] or one['name'] == 'Subject' and 'Delivery Status Notification'  in one['value']:
@@ -180,15 +177,17 @@ def main():
                                 break
                         try:
                             failed_email = mail_delivery_1(payload)
+                        except:
+                            failed_email = mail_delivery_2(payload)
+                        try:
                             description = text(payload)
                         except:
                             description = 'None'
-                            if failed_email is  None:
-                                failed_email = mail_delivery_2(payload)
+                
                         email_no += 1
                         break
-                    else:
-                        pass
+                    # else:
+                    #     pass
                     try:
                         if one['name'] == 'Subject' and 'Undeliverable' in one['value'] or one['name'] == 'From' and 'postmaster' in one['value']:
                             run_data = True
@@ -215,7 +214,7 @@ def main():
                             pass
                     else:
                         pass
-                    df = pd.DataFrame({'Email': [failed_email],
+                    df = pd.DataFrame({'Bounced email': [failed_email],
                                        'Subject': [subject],
                                        'Description': [description]})
                     main_df = pd.concat([main_df, df])
@@ -232,10 +231,14 @@ def main():
                     results = service.users().messages().list(userId='me', labelIds='INBOX',
                                                               pageToken=nextpagetoken).execute()
                 except:
-                    print('Your Total email is ', email_no)
+                    print('Your Total Bounced Email is ', email_no)
                     break
-        main_df.to_excel(writer, sheet_name='Sheet1', index=False)
-        writer.save()
+        try:
+            main_df.to_excel(filename,index=False)
+            print('Completed')
+            # return None
+        except Exception as e:
+            print(e)            
 
     except HttpError as error:
         # TODO(developer) - Handle errors from gmail API.
@@ -243,4 +246,3 @@ def main():
 
 
 main()
-print('Completed')
