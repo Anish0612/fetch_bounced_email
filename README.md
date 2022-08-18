@@ -1,5 +1,5 @@
 # fetch_bounce_mail
-fetch all bounce email by using gmail api
+Using the Gmail API, retrieve all bounced emails and export them to an Excel spreadsheet.
 
 
 
